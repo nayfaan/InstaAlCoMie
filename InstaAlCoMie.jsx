@@ -8,6 +8,7 @@
  * https://indd.adobe.com/view/a0207571-ff5b-4bbf-a540-07079bd21d75
  * https://extendscript.docsforadobe.dev
  * https://theiviaxx.github.io/photoshop-docs/Photoshop/Document.html
+ * https://ppro-scripting.docsforadobe.dev
  * https://github.com/Paul-Riggott/PS-Scripts/blob/master/File%20Stitcher.jsx
  * https://community.adobe.com/t5/photoshop-ecosystem-discussions/i-want-to-know-that-how-to-use-bridge-talk/m-p/7288364
  */
@@ -48,7 +49,7 @@ w.inputGroup1.browse.onClick = w.inputGroup2.browse.onClick = function(){browseF
 //onClick function for browse
 function browseFile(myEle){
     //opens file selection dialogue
-    inputImg = File.openDialog("Select the cover image",function (inputImg){
+    inputImg = File.openDialog("Select image",function (inputImg){
         //limits file type
      if(inputImg.name.match(/\.(png|jpe{0,1}g|tif{1,2})$/i) || inputImg.constructor.name == "Folder")
         {return true}
@@ -113,15 +114,16 @@ function stitchImg(imgCover, imgNext){
     appCover.paste(true);
     appCover.selection.deselect();
     appCover.mergeVisibleLayers();
+
+}
+
+function animateStitch(stitched){
+    alert(stitched);
 }
 
 function ProcessFiles(){
     //exits if not both images found
     if(w.inputGroup1.file.text == '' || w.inputGroup2.file.text == ''){return;}
-    
-    /*if (!BridgeTalk.isRunning("photoshop")){
-     BridgeTalk.launch("photoshop");
-     }*/
     
     //new bridgeTalk to Photoshop
     var btPS = new BridgeTalk();
@@ -130,10 +132,25 @@ function ProcessFiles(){
     //executes stitch script
     btPS.body = "var imgCover = " + File(w.inputGroup1.imgObj).toSource() + ",\nimgNext = " + File(w.inputGroup2.imgObj).toSource() + ",\nmyFunc = " + stitchImg.toSource() + ";\nmyFunc(imgCover, imgNext);";
     
-    btPS.onResult = function(inBT) {result = eval(inBT.body);}
+    var stitched = "";
+    btPS.onResult = function(inBT) {stitched = eval(inBT.body);}
     btPS.onError = function(inBT) {alert(inBT.body);}
-    
+
     BridgeTalk.bringToFront(btPS);
     btPS.send();
+
+    alert(stitched);
     
+    /*//new bridgeTalk to Premiere
+    var btPrP = new BridgeTalk();
+    //sets btPS target to PrP
+    btPrP.target = "premierepro";
+    //executes stitch script
+    btPrP.body = "var stitched = " + stitched.toSource() + ";\nmyFunc = " + animateStitch.toSource() + ";\nmyFunc(stitched);";
+    
+    btPrP.onResult = function(inBT) {result = eval(inBT.body);}
+    btPrP.onError = function(inBT) {alert(inBT.body);}
+    
+    BridgeTalk.bringToFront(btPrP);
+    btPrP.send();*/
 }
