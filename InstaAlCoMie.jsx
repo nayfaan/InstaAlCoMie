@@ -7,6 +7,7 @@
  * References:
  * https://indd.adobe.com/view/a0207571-ff5b-4bbf-a540-07079bd21d75
  * https://extendscript.docsforadobe.dev
+ * https://theiviaxx.github.io/photoshop-docs/Photoshop/Document.html
  * https://github.com/Paul-Riggott/PS-Scripts/blob/master/File%20Stitcher.jsx
  * https://community.adobe.com/t5/photoshop-ecosystem-discussions/i-want-to-know-that-how-to-use-bridge-talk/m-p/7288364
  */
@@ -74,7 +75,6 @@ w.confirmGroup.process.onClick = function() {
             return;
             }
         }
-        //debug();
         //closes window with success code
         w.close(1);
         //starts processing images
@@ -82,40 +82,37 @@ w.confirmGroup.process.onClick = function() {
     }
 }
 
-Image.prototype.onDraw = function(){
-    if(!this.image) return;
-    var WH = this.size,
-    wh = this.image.size,
-    k = Math.min(WH[0]/wh[0], WH[1]/wh[1]),
-    xy;
-
-    wh = [k*wh[0],k*wh[1]];
-    
-    xy = [(WH[0] - wh[0])/2,(WH[1] - wh[1])/2];
-    this.graphic.drawImage(this.image, xy[0], xy[1], wh[0], wh[1]);
-    WH=wh=xy=null;
-}
-
-function debug(){
-    try{
-        w.debugGroup = w.add(groupSettings);
-    w.debugGroup.add("statictext",undefined,"Debug: ");
-    w.debugGroup.img1 = w.debugGroup.add("image",undefined,File(w.inputGroup1.imgObj));
-    w.debugGroup.img2 = w.debugGroup.add("statictext",undefined,File(w.inputGroup2.imgObj));
-        
-    //w.debugGroup.img1.size = w.debugGroup.img2.size = [50,50];
-    w.layout.layout(true);
-    }catch(e) {
-        alert("debug: ",e);
-    }
-}
-
 w.show();
 
+
 function stitchImg(imgCover, imgNext){
-    open(File(imgCover),undefined,true)
-    try{app.activeDocument.duplicate(File(imgCover).name.match(/(.*)\.[^\.]+$/)[1]+"-stitch");}catch(e){alert("dup:", e);}
-    try{app.documents[0].close(SaveOptions.DONOTSAVECHANGES);}catch(e){alert("close:", e);}
+    open(File(imgCover),undefined,true);
+    appTemp = app.activeDocument;
+    appCover = appTemp.duplicate(File(imgCover).name+"-stitch");
+    appTemp.close(SaveOptions.DONOTSAVECHANGES);
+    open(File(imgNext),undefined,true);
+    appTemp = app.activeDocument;
+    appNext = appTemp.duplicate(File(imgCover).name+"-stitchNext");
+    appTemp.close(SaveOptions.DONOTSAVECHANGES);
+    var wNext = appNext.width,
+    hNext = appNext.height,
+    wCover = appCover.width,
+    hCover = appCover.height,
+    sq = Math.max(wNext, hNext, wCover, hCover);
+    appNext.resizeImage(sq,sq,this.reolution);
+    appNext.selection.selectAll();
+    streamNext = appNext.selection.copy();
+    appNext.selection.deselect();
+    appNext.close(SaveOptions.DONOTSAVECHANGES);
+    appCover.resizeImage(sq,sq,this.reolution);
+    appCover.resizeCanvas(sq*2, sq, AnchorPosition.MIDDLELEFT);
+    if(!appCover.activeLayer.isBackgroundLayer){
+            appCover.activeLayer.isBackgroundLayer=true;
+        }
+    appCover.selection.select([[sq,0],[sq*2,0],[sq*2,sq],[sq,sq]], SelectionType.REPLACE, 0, false);
+    appCover.paste(true);
+    appCover.selection.deselect();
+    appCover.mergeVisibleLayers();
 }
 
 function ProcessFiles(){
@@ -123,25 +120,20 @@ function ProcessFiles(){
     if(w.inputGroup1.file.text == '' || w.inputGroup2.file.text == ''){return;}
     
     /*if (!BridgeTalk.isRunning("photoshop")){
-        BridgeTalk.launch("photoshop");
-    }*/
+     BridgeTalk.launch("photoshop");
+     }*/
     
-    try{
-        //new bridgeTalk to Photoshop
+    //new bridgeTalk to Photoshop
     var btPS = new BridgeTalk();
     //sets btPS target to PS
     btPS.target = "photoshop";
     //executes stitch script
     btPS.body = "var imgCover = " + File(w.inputGroup1.imgObj).toSource() + ",\nimgNext = " + File(w.inputGroup2.imgObj).toSource() + ",\nmyFunc = " + stitchImg.toSource() + ";\nmyFunc(imgCover, imgNext);";
-        
-    btPS.onResult = function( inBT ) { result = eval( inBT.body ); }
-    btPS.onError = function( inBT ) {alert(inBT.body); }
-        
-    btPS.send(0.1);
-        
-    }catch(e){
-        
-        alert("P2: ", e);
-        return;
-    }
+    
+    btPS.onResult = function(inBT) {result = eval(inBT.body);}
+    btPS.onError = function(inBT) {alert(inBT.body);}
+    
+    BridgeTalk.bringToFront(btPS);
+    btPS.send();
+    
 }
