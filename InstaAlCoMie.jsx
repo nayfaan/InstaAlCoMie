@@ -8,7 +8,7 @@
  * https://indd.adobe.com/view/a0207571-ff5b-4bbf-a540-07079bd21d75
  * https://extendscript.docsforadobe.dev
  * https://theiviaxx.github.io/photoshop-docs/Photoshop/Document.html
- * https://ppro-scripting.docsforadobe.dev
+ * https://ae-scripting.docsforadobe.dev
  * https://github.com/Paul-Riggott/PS-Scripts/blob/master/File%20Stitcher.jsx
  * https://community.adobe.com/t5/photoshop-ecosystem-discussions/i-want-to-know-that-how-to-use-bridge-talk/m-p/7288364
  * https://community.adobe.com/t5/illustrator-discussions/get-path-to-script/td-p/10399382
@@ -149,7 +149,7 @@ function ProcessFiles(){
             f = new Folder(outputDir);
         }
     }while(!created);
-        
+    
     //new bridgeTalk to Photoshop
     var btPS = new BridgeTalk();
     //sets btPS target to PS
@@ -166,16 +166,16 @@ function ProcessFiles(){
     
     alert(stitched);
     
-    /*//new bridgeTalk to Premiere
-     var btPrP = new BridgeTalk();
-     //sets btPS target to PrP
-     btPrP.target = "premierepro";
+    /*//new bridgeTalk to AfterEffects
+     var btAE = new BridgeTalk();
+     //sets btAE target to AE
+     btAE.target = "aftereffects";
      //executes stitch script
-     btPrP.body = "var stitched = " + stitched.toSource() + ";\nmyFunc = " + animateStitch.toSource() + ";\nmyFunc(stitched);";
+     btAE.body = "var stitched = " + stitched.toSource() + ";\nmyFunc = " + animateStitch.toSource() + ";\nmyFunc(stitched);";
      
-     btPrP.onResult = function(inBT) {result = eval(inBT.body);}
-     btPrP.onError = function(inBT) {alert(inBT.body);}
+     btAE.onResult = function(inBT) {result = eval(inBT.body);}
+     btAE.onError = function(inBT) {alert(inBT.body);}
      
-     BridgeTalk.bringToFront(btPrP);
-     btPrP.send();*/
+     BridgeTalk.bringToFront(btAE);
+     btAE.send(timeout);*/
 }
