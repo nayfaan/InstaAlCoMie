@@ -11,6 +11,8 @@
  * https://ppro-scripting.docsforadobe.dev
  * https://github.com/Paul-Riggott/PS-Scripts/blob/master/File%20Stitcher.jsx
  * https://community.adobe.com/t5/photoshop-ecosystem-discussions/i-want-to-know-that-how-to-use-bridge-talk/m-p/7288364
+ * https://community.adobe.com/t5/illustrator-discussions/get-path-to-script/td-p/10399382
+ *
  */
 
 #target 'bridge'
@@ -51,13 +53,13 @@ function browseFile(myEle){
     //opens file selection dialogue
     inputImg = File.openDialog("Select image",function (inputImg){
         //limits file type
-     if(inputImg.name.match(/\.(png|jpe{0,1}g|tif{1,2})$/i) || inputImg.constructor.name == "Folder")
+        if(inputImg.name.match(/\.(png|jpe{0,1}g|tif{1,2})$/i) || inputImg.constructor.name == "Folder")
         {return true}
-     return false
- },false);
+        return false
+    },false);
     if(inputImg !=null){
         myEle.parent.file.text = decodeURI(inputImg.fsName);
-        }
+    }
     myEle.parent.imgObj = inputImg;
 }
 
@@ -66,14 +68,14 @@ w.onResizing = w.onResize = function(){this.layout.resize();}
 w.confirmGroup.process.onClick = function() {
     //Throws exception if file not chosen for both fields
     if(w.inputGroup1.file.text == '' || w.inputGroup2.file.text == '') {
-            alert("One or more input image not selected!");
-            return;
-        }
+        alert("One or more input image not selected!");
+        return;
+    }
     else{
         //Confirms the user that both images are identical
         if(w.inputGroup1.file.text == w.inputGroup2.file.text){
             if(!confirm("Are you sure you want both images to be identical?")){
-            return;
+                return;
             }
         }
         //closes window with success code
@@ -108,13 +110,17 @@ function stitchImg(imgCover, imgNext){
     appCover.resizeImage(sq,sq,this.reolution);
     appCover.resizeCanvas(sq*2, sq, AnchorPosition.MIDDLELEFT);
     if(!appCover.activeLayer.isBackgroundLayer){
-            appCover.activeLayer.isBackgroundLayer=true;
-        }
+        appCover.activeLayer.isBackgroundLayer=true;
+    }
     appCover.selection.select([[sq,0],[sq*2,0],[sq*2,sq],[sq,sq]], SelectionType.REPLACE, 0, false);
     appCover.paste(true);
     appCover.selection.deselect();
     appCover.mergeVisibleLayers();
-
+    
+    appCover.saveAs(outputDir);
+    appCover.close(SaveOptions.SAVECHANGES);
+    
+    return true.toSource();
 }
 
 function animateStitch(stitched){
@@ -125,32 +131,51 @@ function ProcessFiles(){
     //exits if not both images found
     if(w.inputGroup1.file.text == '' || w.inputGroup2.file.text == ''){return;}
     
+    var timeout = -1;
+    var scriptFile = new File($.fileName);
+    var scriptPath = scriptFile.parent.fsName;
+    var imgName = File(w.inputGroup1.imgObj).name.match(/^.+(?=\..+$)/);
+    
+    var outputDir = scriptPath + '/output/cover_' + imgName;
+    
+    //Create dir
+    var f = new Folder(outputDir);
+    var created = false;
+    do{
+        if (!f.exists)
+            created = f.create();
+        else{
+            outputDir += "_copy";
+            f = new Folder(outputDir);
+        }
+    }while(!created);
+        
     //new bridgeTalk to Photoshop
     var btPS = new BridgeTalk();
     //sets btPS target to PS
     btPS.target = "photoshop";
     //executes stitch script
-    btPS.body = "var imgCover = " + File(w.inputGroup1.imgObj).toSource() + ",\nimgNext = " + File(w.inputGroup2.imgObj).toSource() + ",\nmyFunc = " + stitchImg.toSource() + ";\nmyFunc(imgCover, imgNext);";
+    btPS.body = "var imgCover = " + File(w.inputGroup1.imgObj).toSource() + ",\nimgNext = " + File(w.inputGroup2.imgObj).toSource() + ",\noutputDir = " + f.toSource() + ",\nmyFunc = " + stitchImg.toSource() + ";\nmyFunc(imgCover, imgNext);";
     
     var stitched = "";
     btPS.onResult = function(inBT) {stitched = eval(inBT.body);}
     btPS.onError = function(inBT) {alert(inBT.body);}
-
+    
     BridgeTalk.bringToFront(btPS);
-    btPS.send();
-
+    btPS.send(timeout);
+    
     alert(stitched);
     
     /*//new bridgeTalk to Premiere
-    var btPrP = new BridgeTalk();
-    //sets btPS target to PrP
-    btPrP.target = "premierepro";
-    //executes stitch script
-    btPrP.body = "var stitched = " + stitched.toSource() + ";\nmyFunc = " + animateStitch.toSource() + ";\nmyFunc(stitched);";
-    
-    btPrP.onResult = function(inBT) {result = eval(inBT.body);}
-    btPrP.onError = function(inBT) {alert(inBT.body);}
-    
-    BridgeTalk.bringToFront(btPrP);
-    btPrP.send();*/
+     var btPrP = new BridgeTalk();
+     //sets btPS target to PrP
+     btPrP.target = "premierepro";
+     //executes stitch script
+     btPrP.body = "var stitched = " + stitched.toSource() + ";\nmyFunc = " + animateStitch.toSource() + ";\nmyFunc(stitched);";
+     
+     btPrP.onResult = function(inBT) {result = eval(inBT.body);}
+     btPrP.onError = function(inBT) {alert(inBT.body);}
+     
+     BridgeTalk.bringToFront(btPrP);
+     btPrP.send();*/
 }

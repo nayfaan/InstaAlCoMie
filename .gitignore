@@ -1,5 +1,7 @@
 test.jsx
 __`git commit.command
+output/*
+input/*
 
 .architect
 bootstrap.css
