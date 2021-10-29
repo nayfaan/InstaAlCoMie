@@ -16,37 +16,6 @@
  */
 
 #target 'bridge'
-//#targetengine 'session'; //needed for palette
-
-var windowTitle = 'InstaAlCoMie';
-var w = new Window('dialog', windowTitle, undefined, {resizeable: true});
-w.orientation = "column";
-
-var fileFieldSettings = "edittext {alignment: ['fill', 'center'], minimumSize: [220,-1], text:'' ,properties:{multiline:false,noecho:false,readonly:true}}";
-var groupSettings = "group {alignment: ['fill', 'center']}";
-var buttonSettings = "button {alignment: ['right', 'center'], text: 'Browse'}"
-
-w.inputGroup1 = w.add(groupSettings);
-w.inputGroup1.add("statictext",undefined,"Cover: ");
-w.inputGroup1.file = w.inputGroup1.add(fileFieldSettings);
-w.inputGroup1.browse = w.inputGroup1.add(buttonSettings);
-
-
-w.inputGroup2 = w.add(groupSettings);
-w.inputGroup2.add("statictext",undefined,"Next  : ");
-w.inputGroup2.file = w.inputGroup2.add(fileFieldSettings);
-w.inputGroup2.browse = w.inputGroup2.add(buttonSettings);
-
-w.confirmGroup = w.add(groupSettings);
-w.confirmGroup.process = w.confirmGroup.add("button", undefined, "Process",{name: "OK"});
-w.confirmGroup.cancel = w.confirmGroup.add("button", undefined, "Cancel",{name: "Cancel"});
-w.confirmGroup.alignment = "center",
-
-
-//sets onClick browse function for browse
-w.inputGroup1.browse.onClick = w.inputGroup2.browse.onClick = function(){browseFile(this);};
-
-
 
 //onClick function for browse
 function browseFile(myEle){
@@ -63,30 +32,56 @@ function browseFile(myEle){
     myEle.parent.imgObj = inputImg;
 }
 
-w.onResizing = w.onResize = function(){this.layout.resize();}
+function initUI() {
+    var windowTitle = 'InstaAlCoMie';
+    var w = new Window('dialog', windowTitle, undefined, {resizeable: true});
+    w.orientation = "column";
+    w.onResizing = w.onResize = function(){this.layout.resize();}
 
-w.confirmGroup.process.onClick = function() {
-    //Throws exception if file not chosen for both fields
-    if(w.inputGroup1.file.text == '' || w.inputGroup2.file.text == '') {
-        alert("One or more input image not selected!");
-        return;
-    }
-    else{
-        //Confirms the user that both images are identical
-        if(w.inputGroup1.file.text == w.inputGroup2.file.text){
-            if(!confirm("Are you sure you want both images to be identical?")){
-                return;
-            }
+    var fileFieldSettings = "edittext {alignment: ['fill', 'center'], minimumSize: [220,-1], text:'' ,properties:{multiline:false,noecho:false,readonly:true}}";
+    var groupSettings = "group {alignment: ['fill', 'center']}";
+    var buttonSettings = "button {alignment: ['right', 'center'], text: 'Browse'}"
+
+    w.inputGroup1 = w.add(groupSettings);
+    w.inputGroup1.add("statictext",undefined,"Cover: ");
+    w.inputGroup1.file = w.inputGroup1.add(fileFieldSettings);
+    w.inputGroup1.browse = w.inputGroup1.add(buttonSettings);
+
+    w.inputGroup2 = w.add(groupSettings);
+    w.inputGroup2.add("statictext",undefined,"Next  : ");
+    w.inputGroup2.file = w.inputGroup2.add(fileFieldSettings);
+    w.inputGroup2.browse = w.inputGroup2.add(buttonSettings);
+
+    w.confirmGroup = w.add(groupSettings);
+    w.confirmGroup.process = w.confirmGroup.add("button", undefined, "Process",{name: "OK"});
+    w.confirmGroup.cancel = w.confirmGroup.add("button", undefined, "Cancel",{name: "Cancel"});
+    w.confirmGroup.alignment = "center",
+
+    //sets onClick browse function for browse
+    w.inputGroup1.browse.onClick = w.inputGroup2.browse.onClick = function(){browseFile(this);};
+
+    w.confirmGroup.process.onClick = function() {
+        //Throws exception if file not chosen for both fields
+        if(w.inputGroup1.file.text == '' || w.inputGroup2.file.text == '') {
+            alert("One or more input image not selected!");
+            return;
         }
-        //closes window with success code
-        w.close(1);
-        //starts processing images
-        ProcessFiles();
+        else{
+            //Confirms the user that both images are identical
+            if(w.inputGroup1.file.text == w.inputGroup2.file.text){
+                if(!confirm("Are you sure you want both images to be identical?")){
+                    return;
+                }
+            }
+            //closes window with success code
+            w.close(1);
+            //starts processing images
+            ProcessFiles();
+        }
     }
+
+    w.show();
 }
-
-w.show();
-
 
 function stitchImg(imgCover, imgNext){
     open(File(imgCover),undefined,true);
@@ -127,17 +122,7 @@ function animateStitch(stitched){
     alert(stitched);
 }
 
-function ProcessFiles(){
-    //exits if not both images found
-    if(w.inputGroup1.file.text == '' || w.inputGroup2.file.text == ''){return;}
-    
-    var timeout = -1;
-    var scriptFile = new File($.fileName);
-    var scriptPath = scriptFile.parent.fsName;
-    var imgName = File(w.inputGroup1.imgObj).name.match(/^.+(?=\..+$)/);
-    
-    var outputDir = scriptPath + '/output/cover_' + imgName;
-    
+function createDir(outputDir){
     //Create dir
     var f = new Folder(outputDir);
     var created = false;
@@ -149,33 +134,70 @@ function ProcessFiles(){
             f = new Folder(outputDir);
         }
     }while(!created);
-    
+    return [f, outputDir]
+}
+
+function PSEdit(f, img1, img2){
     //new bridgeTalk to Photoshop
     var btPS = new BridgeTalk();
     //sets btPS target to PS
     btPS.target = "photoshop";
     //executes stitch script
-    btPS.body = "var imgCover = " + File(w.inputGroup1.imgObj).toSource() + ",\nimgNext = " + File(w.inputGroup2.imgObj).toSource() + ",\noutputDir = " + f.toSource() + ",\nmyFunc = " + stitchImg.toSource() + ";\nmyFunc(imgCover, imgNext);";
+    btPS.body = "var imgCover = " + File(img1).toSource() + ",\nimgNext = " + File(img2).toSource() + ",\noutputDir = " + f.toSource() + ",\nmyFunc = " + stitchImg.toSource() + ";\nmyFunc(imgCover, imgNext);";
     
-    var stitched = "";
-    btPS.onResult = function(inBT) {stitched = eval(inBT.body);}
+    btPS.onResult = function(inBT) {eval(inBT.body);}
     btPS.onError = function(inBT) {alert(inBT.body);}
     
     BridgeTalk.bringToFront(btPS);
-    btPS.send(timeout);
-    
-    alert(stitched);
-    
-    /*//new bridgeTalk to AfterEffects
+    btPS.send(-1);
+}
+
+function AEEdit(f){
+    var stitchedPsd = f.getFiles(/\.psd$/i)[0];
+    //new bridgeTalk to AfterEffects
      var btAE = new BridgeTalk();
      //sets btAE target to AE
      btAE.target = "aftereffects";
      //executes stitch script
-     btAE.body = "var stitched = " + stitched.toSource() + ";\nmyFunc = " + animateStitch.toSource() + ";\nmyFunc(stitched);";
+     btAE.body = "var stitched = " + stitchedPsd.toSource() + ";\nmyFunc = " + animateStitch.toSource() + ";\nmyFunc(stitched);";
      
-     btAE.onResult = function(inBT) {result = eval(inBT.body);}
+     btAE.onResult = function(inBT) {eval(inBT.body);}
      btAE.onError = function(inBT) {alert(inBT.body);}
      
      BridgeTalk.bringToFront(btAE);
-     btAE.send(timeout);*/
+     btAE.send(-1);
 }
+
+function ProcessFiles(){
+    //exits if not both images found
+    if(w.inputGroup1.file.text == '' || w.inputGroup2.file.text == ''){return;}
+    
+    var scriptFile = new File($.fileName);
+    var scriptPath = scriptFile.parent.fsName;
+    var imgName = File(w.inputGroup1.imgObj).name.match(/^.+(?=\..+$)/);
+    
+    var outputDir = scriptPath + '/output/cover_' + imgName;
+
+    var temp = createDir(outputDir),
+    f = temp[0],
+    outputDir = temp[1];
+
+    PSEdit(f, w.inputGroup1.imgObj, w.inputGroup2.imgObj);    
+    
+    AEEdit(f);
+}
+
+function main(){
+    if(!BridgeTalk.getSpecifier("photoshop")){
+        alert("PhotoShop is not installed.");
+        return;
+    }
+    if(!BridgeTalk.getSpecifier("aftereffects")){
+        alert("After Effects is not installed.");
+        return;
+    }
+
+    initUI();
+}
+
+main();
