@@ -9,6 +9,7 @@
  * https://extendscript.docsforadobe.dev
  * https://theiviaxx.github.io/photoshop-docs/Photoshop/Document.html
  * https://ae-scripting.docsforadobe.dev
+ * https://ame-scripting.docsforadobe.dev
  * https://github.com/Paul-Riggott/PS-Scripts/blob/master/File%20Stitcher.jsx
  * https://community.adobe.com/t5/photoshop-ecosystem-discussions/i-want-to-know-that-how-to-use-bridge-talk/m-p/7288364
  * https://community.adobe.com/t5/illustrator-discussions/get-path-to-script/td-p/10399382
@@ -128,7 +129,7 @@ function animateStitch(stitched, imgName, sq) {
     appProj.timeDisplayType = TimeDisplayType.FRAMES;
     var pixelAspect = 1.0,
         duration = 5.0,
-        frameRate = 60.0;
+        frameRate = 30.0;
     var appComp = appProj.items.addComp(imgName + "-swipe", sq, sq, pixelAspect, duration, frameRate);
     appComp.openInViewer();
 
@@ -144,7 +145,7 @@ function animateStitch(stitched, imgName, sq) {
     layerPosition.setValue([sq, layerPosition.value[1]]);
     var position_0 = layerPosition.value;
     var positionKeyframesTime = [40, 143, 157, 260].map(function (currentValue) {
-        return currentValue / 60.0;
+        return currentValue / 60;
     });
     var positionKeyframes = new Array();
     for (var i = 0; i < positionKeyframesTime.length; i++) {
@@ -163,6 +164,10 @@ function animateStitch(stitched, imgName, sq) {
     for (var i = 0; i < layerPosition.selectedKeys.length; i++) {
         layerPosition.setTemporalEaseAtKey(layerPosition.selectedKeys[i], [easyEase], [easyEase]);
     }
+
+    var appRQ = appProj.renderQueue;
+    appRQ.items.add(appComp);
+    appRQ.queueInAME(false);    
 
     return true.toSource();
 }
@@ -219,6 +224,8 @@ function AESend(f, imgName, sq) {
     
     BridgeTalk.bringToFront(btAE);
     btAE.send(-1);
+    
+    return;
 }
 
 function ProcessFiles() {
@@ -230,7 +237,6 @@ function ProcessFiles() {
 
     var sq = PSSend(myFolder, imgName, w.inputGroup1.imgObj, w.inputGroup2.imgObj);
     AESend(myFolder, imgName, sq);
-
 }
 
 function main() {
@@ -240,6 +246,10 @@ function main() {
     }
     if (!BridgeTalk.getSpecifier("aftereffects")) {
         alert("After Effects is not installed.");
+        return;
+    }
+    if (!BridgeTalk.getSpecifier("ame")) {
+        alert("Media Encoder is not installed.");
         return;
     }
 
