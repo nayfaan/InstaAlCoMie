@@ -176,6 +176,7 @@ function animateStitch(stitched, imgName, sq) {
         }
     };
     appOM.setSettings(new_data);
+    appRQ.queueInAME(false);
 
     return true.toSource();
 }
