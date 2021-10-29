@@ -9,7 +9,6 @@
  * https://extendscript.docsforadobe.dev
  * https://theiviaxx.github.io/photoshop-docs/Photoshop/Document.html
  * https://ae-scripting.docsforadobe.dev
- * https://ame-scripting.docsforadobe.dev
  * https://github.com/Paul-Riggott/PS-Scripts/blob/master/File%20Stitcher.jsx
  * https://community.adobe.com/t5/photoshop-ecosystem-discussions/i-want-to-know-that-how-to-use-bridge-talk/m-p/7288364
  * https://community.adobe.com/t5/illustrator-discussions/get-path-to-script/td-p/10399382
@@ -87,11 +86,11 @@ function initUI() {
 function stitchImg(imgName, imgCover, imgNext) {
     open(File(imgCover), undefined, true);
     var appTemp = app.activeDocument;
-    var appCover = appTemp.duplicate(imgName + "-stitch");
+    var appCover = appTemp.duplicate(imgName + "_stitch");
     appTemp.close(SaveOptions.DONOTSAVECHANGES);
     open(File(imgNext), undefined, true);
     appTemp = app.activeDocument;
-    var appNext = appTemp.duplicate(imgName + "-stitchNext");
+    var appNext = appTemp.duplicate(imgName + "_stitchNext");
     appTemp.close(SaveOptions.DONOTSAVECHANGES);
     const wNext = appNext.width,
         hNext = appNext.height,
@@ -122,6 +121,7 @@ function stitchImg(imgName, imgCover, imgNext) {
 function animateStitch(stitched, imgName, sq) {
     imgName = String(imgName);
     sq = parseInt(sq);
+    f = String(f);
 
     app.project.close(CloseOptions.DO_NOT_SAVE_CHANGES);
 
@@ -145,7 +145,7 @@ function animateStitch(stitched, imgName, sq) {
     layerPosition.setValue([sq, layerPosition.value[1]]);
     var position_0 = layerPosition.value;
     var positionKeyframesTime = [40, 143, 157, 260].map(function (currentValue) {
-        return currentValue / 60;
+        return currentValue / 60.0;
     });
     var positionKeyframes = new Array();
     for (var i = 0; i < positionKeyframesTime.length; i++) {
@@ -166,8 +166,16 @@ function animateStitch(stitched, imgName, sq) {
     }
 
     var appRQ = appProj.renderQueue;
-    appRQ.items.add(appComp);
-    appRQ.queueInAME(false);    
+    var appRend = appRQ.items.add(appComp);
+    var appOM = appRend.outputModule(1);
+
+    f += ("/dpx/" + imgName + "_cover.dpx");
+    var new_data = {
+        "Output File Info": {
+            "Full Flat Path": f
+        }
+    };
+    appOM.setSettings(new_data);
 
     return true.toSource();
 }
@@ -201,8 +209,8 @@ function PSSend(f, imgName, img1, img2) {
     btPS.body = "var imgName = " + imgName.toSource() + ",\nimgCover = " + File(img1).toSource() + ",\nimgNext = " + File(img2).toSource() + ",\noutputDir = " + f.toSource() + ",\nmyFunc = " + stitchImg.toSource() + ";\nmyFunc(imgName, imgCover, imgNext);";
 
     var sqPS;
-    btPS.onResult = function (inBT) { sqPS = eval(inBT.body);}
-    btPS.onError = function (inBT) {alert(inBT.body);}
+    btPS.onResult = function (inBT) { sqPS = eval(inBT.body); }
+    btPS.onError = function (inBT) { alert(inBT.body); }
 
     BridgeTalk.bringToFront(btPS);
     btPS.send(-1);
@@ -217,14 +225,14 @@ function AESend(f, imgName, sq) {
     //sets btAE target to AE
     btAE.target = "aftereffects";
     //executes stitch script
-    btAE.body = "var imgName = " + imgName.toSource() + ",\nstitched = " + stitchedPsd.toSource() + ",\nsq = " + sq.toSource() + ",\nmyFunc = " + animateStitch.toSource() + ";\nmyFunc(stitched, imgName, sq);";
+    btAE.body = "var imgName = " + imgName.toSource() + ",\nstitched = " + stitchedPsd.toSource() + ",\nsq = " + sq.toSource() + ",\nf = " + f.toSource() + ",\nmyFunc = " + animateStitch.toSource() + ";\nmyFunc(stitched, imgName, sq);";
 
-    btAE.onResult = function (inBT) {eval(inBT.body);}
-    btAE.onError = function (inBT) {alert(inBT.body);}
-    
+    btAE.onResult = function (inBT) { eval(inBT.body); }
+    btAE.onError = function (inBT) { alert(inBT.body); }
+
     BridgeTalk.bringToFront(btAE);
     btAE.send(-1);
-    
+
     return;
 }
 
@@ -254,6 +262,9 @@ function main() {
     }
 
     initUI();
+
+    photoshop.quit();
+    //aftereffects.quit();
 }
 
 main();
