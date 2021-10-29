@@ -23,7 +23,7 @@ function browseFile(myEle) {
     //opens file selection dialogue
     var inputImg = File.openDialog("Select image", function (inputImg) {
         //limits file type
-        if (inputImg.name.match(/\.(png|jpe{0,1}g|tif{1,2})$/i) || inputImg.constructor.name == "Folder") {return true;}
+        if (inputImg.name.match(/\.(png|jpe{0,1}g|tif{1,2})$/i) || inputImg.constructor.name == "Folder") { return true; }
         return false;
     }, false);
     if (inputImg != null) {
@@ -57,8 +57,8 @@ function initUI() {
     w.confirmGroup.cancel = w.confirmGroup.add("button", undefined, "Cancel", { name: "Cancel" });
     w.confirmGroup.alignment = "center",
 
-    //sets onClick browse function for browse
-    w.inputGroup1.browse.onClick = w.inputGroup2.browse.onClick = function () { browseFile(this); };
+        //sets onClick browse function for browse
+        w.inputGroup1.browse.onClick = w.inputGroup2.browse.onClick = function () { browseFile(this); };
 
     w.confirmGroup.process.onClick = function () {
         //Throws exception if file not chosen for both fields
@@ -127,8 +127,8 @@ function animateStitch(stitched, imgName, sq) {
     var appProj = app.newProject();
     appProj.timeDisplayType = TimeDisplayType.FRAMES;
     var pixelAspect = 1.0,
-    duration = 5.0,
-    frameRate = 60.0;
+        duration = 5.0,
+        frameRate = 60.0;
     var appComp = appProj.items.addComp(imgName + "-swipe", sq, sq, pixelAspect, duration, frameRate);
     appComp.openInViewer();
 
@@ -143,24 +143,24 @@ function animateStitch(stitched, imgName, sq) {
     var layerPosition = appPSDLayer.property("position");
     layerPosition.setValue([sq, layerPosition.value[1]]);
     var position_0 = layerPosition.value;
-    var positionKeyframesTime = [40,143,157,260].map(function(currentValue){
-        return currentValue/60.0;
+    var positionKeyframesTime = [40, 143, 157, 260].map(function (currentValue) {
+        return currentValue / 60.0;
     });
     var positionKeyframes = new Array();
-    for(var i = 0; i < positionKeyframesTime.length; i++){
+    for (var i = 0; i < positionKeyframesTime.length; i++) {
         positionKeyframes.push(layerPosition.addKey(positionKeyframesTime[i]));
     }
 
-    layerPosition.setSelectedAtKey(2,true);
-    layerPosition.setSelectedAtKey(3,true);
-    for(var i = 0; i < layerPosition.selectedKeys.length; i++){
-        layerPosition.setValueAtKey(layerPosition.selectedKeys[i], [position_0[0]*0.75,position_0[1]]);
+    layerPosition.setSelectedAtKey(2, true);
+    layerPosition.setSelectedAtKey(3, true);
+    for (var i = 0; i < layerPosition.selectedKeys.length; i++) {
+        layerPosition.setValueAtKey(layerPosition.selectedKeys[i], [position_0[0] * 0.75, position_0[1]]);
     }
-    
+
     var easyEase = new KeyframeEase(0, 33);
-    layerPosition.setSelectedAtKey(1,true);
-    layerPosition.setSelectedAtKey(4,true);
-    for(var i = 0; i < layerPosition.selectedKeys.length; i++){
+    layerPosition.setSelectedAtKey(1, true);
+    layerPosition.setSelectedAtKey(4, true);
+    for (var i = 0; i < layerPosition.selectedKeys.length; i++) {
         layerPosition.setTemporalEaseAtKey(layerPosition.selectedKeys[i], [easyEase], [easyEase]);
     }
 
@@ -170,9 +170,9 @@ function animateStitch(stitched, imgName, sq) {
 function createDir(imgName) {
     var scriptFile = new File($.fileName);
     var scriptPath = scriptFile.parent.fsName;
-    
+
     var outputDir = scriptPath + '/output/cover_' + imgName;
-    
+
     //Create dir
     var f = new Folder(outputDir);
     var created = false;
@@ -195,11 +195,14 @@ function PSSend(f, imgName, img1, img2) {
     //executes stitch script
     btPS.body = "var imgName = " + imgName.toSource() + ",\nimgCover = " + File(img1).toSource() + ",\nimgNext = " + File(img2).toSource() + ",\noutputDir = " + f.toSource() + ",\nmyFunc = " + stitchImg.toSource() + ";\nmyFunc(imgName, imgCover, imgNext);";
 
-    btPS.onResult = function (inBT) { eval(inBT.body); }
-    btPS.onError = function (inBT) { alert(inBT.body); }
+    var sqPS;
+    btPS.onResult = function (inBT) { sqPS = eval(inBT.body);}
+    btPS.onError = function (inBT) {alert(inBT.body);}
 
     BridgeTalk.bringToFront(btPS);
     btPS.send(-1);
+
+    return sqPS;
 }
 
 function AESend(f, imgName, sq) {
@@ -211,22 +214,23 @@ function AESend(f, imgName, sq) {
     //executes stitch script
     btAE.body = "var imgName = " + imgName.toSource() + ",\nstitched = " + stitchedPsd.toSource() + ",\nsq = " + sq.toSource() + ",\nmyFunc = " + animateStitch.toSource() + ";\nmyFunc(stitched, imgName, sq);";
 
-    btAE.onResult = function (inBT) { eval(inBT.body); }
-    btAE.onError = function (inBT) { alert(inBT.body); }
-
+    btAE.onResult = function (inBT) {eval(inBT.body);}
+    btAE.onError = function (inBT) {alert(inBT.body);}
+    
     BridgeTalk.bringToFront(btAE);
     btAE.send(-1);
 }
 
 function ProcessFiles() {
     //exits if not both images found
-    if (w.inputGroup1.file.text == '' || w.inputGroup2.file.text == '') {return;}
+    if (w.inputGroup1.file.text == '' || w.inputGroup2.file.text == '') { return; }
 
     var imgName = File(w.inputGroup1.imgObj).name.match(/^.+(?=\..+$)/);
     var myFolder = createDir(imgName);
 
-    const sq = PSSend(myFolder, imgName, w.inputGroup1.imgObj, w.inputGroup2.imgObj);
-    //AESend(myFolder, imgName, sq);
+    var sq = PSSend(myFolder, imgName, w.inputGroup1.imgObj, w.inputGroup2.imgObj);
+    AESend(myFolder, imgName, sq);
+
 }
 
 function main() {
@@ -242,7 +246,4 @@ function main() {
     initUI();
 }
 
-//main();
-
-f = Folder("/Users/n/Desktop/git/InstaAlCoMie/output")
-AESend(f,"testAE",1024);
+main();
